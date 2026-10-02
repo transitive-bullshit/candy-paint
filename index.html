@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Candy Paint</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=DM+Mono:wght@500&display=block"
+    />
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #050307;
+        overflow: hidden;
+      }
+      body {
+        display: grid;
+        place-items: center;
+      }
+      body.render {
+        display: block;
+      }
+      canvas {
+        display: block;
+      }
+      .ui {
+        position: fixed;
+        left: 16px;
+        right: 16px;
+        bottom: 12px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        font:
+          12px/1.2 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        color: #d8cfe0;
+      }
+      .ui input {
+        flex: 1;
+      }
+      .ui button {
+        font: inherit;
+        background: #1c1420;
+        color: inherit;
+        border: 1px solid #3a2e40;
+        padding: 4px 10px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

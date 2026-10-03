@@ -1,5 +1,7 @@
 # Candy Paint
 
+![Candy Paint: the title over two pearls of light skipping across a candy-lacquered score](docs/poster.jpg)
+
 > A music video for a piano cover of Post Malone's "Candy Paint", rendered note by note from the score.
 
 Every voice in the arrangement gets a small performer that travels the score and lands on each note exactly as it sounds. No generative video or imagery: a purpose-built WebGL engine renders every frame deterministically from a transcription of the song.

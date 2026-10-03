@@ -434,6 +434,8 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
     | 'none'
   const intro =
     introParam !== 'none' && ENTRANCES.includes(introParam) ? introParam : null
+  // ?card=1: the intro title, in its frame-0 spot, over any moment (social cards and posters)
+  const card = ctx.query.get('card') === '1'
   renderer.toneMapping = THREE.NoToneMapping
   renderer.outputColorSpace = THREE.SRGBColorSpace
 
@@ -808,7 +810,10 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
       // with an intro, frame 0 is lit instead of fading up from black
       if (intro && t < 1) fader.fade = 1
       credits.draw(t)
-      posterFx.draw(t, intro && directed ? titleAnchor(t) : null)
+      posterFx.draw(
+        card ? 0 : t,
+        card ? titleAnchor(0) : intro && directed ? titleAnchor(t) : null
+      )
       notes.uniforms.uTime.value = t
       lines.uniforms.uTime.value = t
       for (const p of performers) {

@@ -636,6 +636,17 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
     intro ?? undefined,
     ctx.height > ctx.width
   )
+  // a tall frame is too narrow for the storyboard alone to hold the cast: the camera follows the
+  // performers, keeping every visible one in frame
+  if (ctx.height > ctx.width)
+    director.keepInFrame(
+      (t) =>
+        cast.performers.map(({ motion }) => {
+          const p = motion.pose(t)
+          return { x: p.x, y: p.y, z: p.z, visible: p.visible }
+        }),
+      ctx.width / ctx.height
+    )
   // the drop shockwave rolls out from the bass's landing on each drop downbeat
   const shockMat = rippleMaterial()
   const shockwave = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), shockMat)

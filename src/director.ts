@@ -171,7 +171,11 @@ const OPENINGS: Record<EntranceStyle, Framing> = {
  * room ahead of the playhead.
  */
 const PORTRAIT = {
-  azimuth: 6,
+  /** degrees further round to the side: the staves then stack up the tall frame instead of
+   *  spreading across its narrow width */
+  azimuth: 16,
+  /** but never closer to a flat side view than this */
+  maxAzimuth: -12,
   elevation: 9,
   fov: 1.6,
   maxFov: 46,
@@ -181,7 +185,7 @@ const PORTRAIT = {
 
 export const portrait = (f: Framing): Framing => ({
   ...f,
-  azimuth: f.azimuth - PORTRAIT.azimuth,
+  azimuth: Math.min(PORTRAIT.maxAzimuth, f.azimuth + PORTRAIT.azimuth),
   elevation: f.elevation + PORTRAIT.elevation,
   fov: Math.min(PORTRAIT.maxFov, f.fov * PORTRAIT.fov),
   dist: f.dist * PORTRAIT.dist,
@@ -321,16 +325,105 @@ export interface CameraState {
   shock: { age: number; strength: number } | null
 }
 
+/** a performer in the shot: where it is, and how visible (0..1) */
+export interface Subject {
+  x: number
+  y: number
+  z: number
+  visible: number
+}
+
+/**
+ * Keeping the cast in frame. The storyboard sets the angles and the mood; this slides the camera
+ * sideways to center the visible performers and pulls it back when they'd spill out of the safe
+ * area, making room a beat before a performer arrives and holding it a moment after it leaves.
+ */
+const FOLLOW = {
+  /** samples per second of the precomputed track */
+  rate: 30,
+  /** fraction of the half-frame the performers may fill, each way */
+  safe: 0.7,
+  /** where their center sits, in normalized screen y: a touch below the middle */
+  low: -0.06,
+  /** performers dimmer than this (docked buds, long rests) don't need to be in frame */
+  minVisible: 0.35,
+  /** seconds of room made before a performer arrives, and kept after it leaves */
+  lead: 1.0,
+  hold: 0.4,
+  /** smoothing (gaussian sigma, seconds) of the slide and of the pull-back */
+  shiftSigma: 0.5,
+  pullSigma: 0.35
+}
+
+type V3 = [number, number, number]
+const add = (a: V3, b: V3, k = 1): V3 => [
+  a[0] + b[0] * k,
+  a[1] + b[1] * k,
+  a[2] + b[2] * k
+]
+const dot = (a: V3, b: V3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+const cross = (a: V3, b: V3): V3 => [
+  a[1] * b[2] - a[2] * b[1],
+  a[2] * b[0] - a[0] * b[2],
+  a[0] * b[1] - a[1] * b[0]
+]
+const unit = (a: V3): V3 => {
+  const l = Math.hypot(...a)
+  return [a[0] / l, a[1] / l, a[2] / l]
+}
+
+/** gaussian smoothing of one channel of a strided track, within [from, to) */
+function gaussian(
+  src: Float32Array,
+  stride: number,
+  channel: number,
+  sigma: number,
+  from: number,
+  to: number,
+  out: Float32Array
+) {
+  const r = Math.ceil(sigma * 3)
+  for (let i = from; i < to; i++) {
+    let sum = 0
+    let wsum = 0
+    for (let j = Math.max(from, i - r); j <= Math.min(to - 1, i + r); j++) {
+      const w = Math.exp(-((j - i) ** 2) / (2 * sigma * sigma))
+      sum += src[j * stride + channel]! * w
+      wsum += w
+    }
+    out[i * stride + channel] = sum / wsum
+  }
+}
+
+/** the largest value in [i - before, i + after] for each i, within [from, to) */
+function reach(
+  src: Float32Array,
+  before: number,
+  after: number,
+  from: number,
+  to: number,
+  out: Float32Array
+) {
+  for (let i = from; i < to; i++) {
+    let m = 0
+    for (
+      let j = Math.max(from, i - before);
+      j <= Math.min(to - 1, i + after);
+      j++
+    )
+      m = Math.max(m, src[j]!)
+    out[i] = m
+  }
+}
+
 export class Director {
   private readonly score: Score
   private readonly layout: Layout
 
   private readonly shots: Shot[]
+  /** precomputed slide (x, y, z) and pull-back per sample, from keepInFrame */
+  private follow: { shift: Float32Array; pull: Float32Array } | null = null
 
-  /**
-   * @param entrance with an intro entrance, open on the riff's performers (a held framing that
-   * suits how they enter), then follow them closely through the intro before the hook
-   */
   /**
    * @param entrance with an intro entrance, open on the riff's performers (a held framing that
    * suits how they enter), then follow them closely through the intro before the hook
@@ -452,20 +545,128 @@ export class Director {
   }
 
   /** @param impact scales the drops' punch-in and shake (1 = as storyboarded) */
-  state(t: number, impact = 1): CameraState {
+  /** the storyboard's camera at t: where it looks, the unit vector back to it, and how far */
+  private aim(t: number) {
     const fr = this.framing(t)
-    const target: [number, number, number] = [
-      fr.x,
-      fr.height,
-      this.focusAt(t) + fr.pan
-    ]
+    const target: V3 = [fr.x, fr.height, this.focusAt(t) + fr.pan]
     const az = (fr.azimuth * Math.PI) / 180
     const el = (fr.elevation * Math.PI) / 180
-    let position: [number, number, number] = [
-      target[0] + fr.dist * Math.cos(el) * Math.sin(az),
-      target[1] + fr.dist * Math.sin(el),
-      target[2] + fr.dist * Math.cos(el) * Math.cos(az)
+    const back: V3 = [
+      Math.cos(el) * Math.sin(az),
+      Math.sin(el),
+      Math.cos(el) * Math.cos(az)
     ]
+    return { fr, target, back }
+  }
+
+  /**
+   * Precompute the slide and pull-back that keep `subjects` centered and inside the safe area of
+   * a frame with this aspect, for the whole song. Every frame is a function of time, so the camera
+   * can see performers coming and make room for them before they arrive.
+   */
+  keepInFrame(subjects: (t: number) => Subject[], aspect: number) {
+    const { rate } = FOLLOW
+    const n = Math.ceil(this.score.data.duration * rate) + 1
+    const shift = new Float32Array(n * 3)
+    const pull = new Float32Array(n)
+    for (let i = 0; i < n; i++) {
+      const t = i / rate
+      const { fr, target, back } = this.aim(t)
+      const pts = subjects(t).filter((p) => p.visible >= FOLLOW.minVisible)
+      if (!pts.length) continue
+      const tanY = Math.tan((fr.fov * Math.PI) / 360)
+      const tanX = tanY * aspect
+      const f: V3 = [-back[0], -back[1], -back[2]]
+      const r = unit(cross(f, [0, 1, 0]))
+      const u = cross(r, f)
+      let at = target
+      let dist = fr.dist
+      // center the performers' screen bounds, then back off until they fit; twice to settle
+      for (let pass = 0; pass < 3; pass++) {
+        const eye = add(at, back, dist)
+        let x0 = Infinity
+        let x1 = -Infinity
+        let y0 = Infinity
+        let y1 = -Infinity
+        let depth = 0
+        for (const p of pts) {
+          const d: V3 = [p.x - eye[0], p.y - eye[1], p.z - eye[2]]
+          const z = Math.max(0.05, dot(d, f))
+          const x = dot(d, r) / (z * tanX)
+          const y = dot(d, u) / (z * tanY)
+          x0 = Math.min(x0, x)
+          x1 = Math.max(x1, x)
+          y0 = Math.min(y0, y)
+          y1 = Math.max(y1, y)
+          depth += z
+        }
+        depth /= pts.length
+        at = add(at, r, ((x0 + x1) / 2) * depth * tanX)
+        at = add(at, u, ((y0 + y1) / 2 - FOLLOW.low) * depth * tanY)
+        const fit = Math.max(x1 - x0, y1 - y0) / 2 / FOLLOW.safe
+        if (fit > 1) dist += depth * (fit - 1)
+      }
+      shift.set(
+        [at[0] - target[0], at[1] - target[1], at[2] - target[2]],
+        i * 3
+      )
+      pull[i] = dist - fr.dist
+    }
+
+    // smooth within each run of frames between hard cuts, so nothing blends across a cut
+    const cuts = this.shots
+      .filter((sh) => sh.cut)
+      .map((sh) => Math.round(this.score.barTime(sh.bar) * rate))
+    const bounds = [0, ...cuts.filter((c) => c > 0 && c < n), n]
+    const smoothShift = new Float32Array(n * 3)
+    const reached = new Float32Array(n)
+    const smoothPull = new Float32Array(n)
+    for (let k = 0; k + 1 < bounds.length; k++) {
+      const [a, b] = [bounds[k]!, bounds[k + 1]!]
+      for (let c = 0; c < 3; c++)
+        gaussian(shift, 3, c, FOLLOW.shiftSigma * rate, a, b, smoothShift)
+      reach(
+        pull,
+        Math.round(FOLLOW.hold * rate),
+        Math.round(FOLLOW.lead * rate),
+        a,
+        b,
+        reached
+      )
+      gaussian(reached, 1, 0, FOLLOW.pullSigma * rate, a, b, smoothPull)
+    }
+    this.follow = { shift: smoothShift, pull: smoothPull }
+  }
+
+  /** the precomputed slide and pull-back at t, interpolated */
+  private followAt(t: number): { shift: V3; pull: number } {
+    const { shift, pull } = this.follow!
+    const n = pull.length
+    const x = clamp(t * FOLLOW.rate, 0, n - 1)
+    const i = Math.min(n - 2, Math.floor(x))
+    const s = x - i
+    const at = (c: number) =>
+      lerp(shift[i * 3 + c]!, shift[(i + 1) * 3 + c]!, s)
+    return {
+      shift: [at(0), at(1), at(2)],
+      pull: lerp(pull[i]!, pull[i + 1]!, s)
+    }
+  }
+
+  state(t: number, impact = 1): CameraState {
+    const { fr, back } = this.aim(t)
+    let { target } = this.aim(t)
+    let dist = fr.dist
+    // the reveal: fog lifts and every painted note relights as the camera rises; it's composed
+    // for the credits, so the cast stops steering the camera as it begins
+    const reveal = smooth(clamp((t - this.score.barTime(82)) / 6))
+    if (this.follow) {
+      const k = 1 - reveal
+      const f = this.followAt(t)
+      target = add(target, f.shift, k)
+      dist += f.pull * k
+    }
+    let position: [number, number, number] = add(target, back, dist)
     let fov = fr.fov
 
     // drops: a punch in and a short, decaying shake
@@ -487,8 +688,6 @@ export class Director {
     const dur = this.score.data.duration
     const fade =
       smooth(clamp(t / 0.6)) * (1 - smooth(clamp((t - (dur - 2.0)) / 1.9)))
-    // the reveal: fog lifts and every painted note relights as the camera rises
-    const reveal = smooth(clamp((t - this.score.barTime(82)) / 6))
     const inHook = DROPS.some((d) => {
       const bar = this.score.pos(t) / 16
       return bar >= d && bar < d + 8

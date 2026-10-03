@@ -68,7 +68,7 @@ pnpm preview
 
 ## Tests
 
-`pnpm test` runs format, lint, types and `test/motion.test.ts`, which checks that every performer lands on every onset and never jumps between frames. It runs on a synthetic fixture and on the real score in `data/score.json`.
+`pnpm test` runs format, lint, types and the unit tests: `test/motion.test.ts` checks that every performer lands on every onset and never jumps between frames, and `test/framing.test.ts` that the 9:16 camera keeps the visible performers in frame. It runs on a synthetic fixture and on the real score in `data/score.json`.
 
 ## Not in the repo
 

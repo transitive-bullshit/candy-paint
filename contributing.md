@@ -33,7 +33,7 @@ pnpm render --look lacquer --shot director --w 540 --h 960 --from 0 --to 233.59 
 
 # 6. the final video: a 4K60 master for YouTube (about 45 min on an M3 Pro), then a supersampled, lighter 1080p60 for X and the web
 pnpm render --look lacquer --shot director --w 3840 --h 2160 --from 0 --to 233.59 --fps 60 --transfer jpeg --out renders/final/candy-paint-4k60.mp4
-ffmpeg -i renders/final/candy-paint-4k60.mp4 -vf scale=1920:1080:flags=lanczos -c:v libx264 -preset slow -crf 19 -maxrate 12M -bufsize 24M -profile:v high -level 4.2 -pix_fmt yuv420p -c:a copy -movflags +faststart renders/final/candy-paint-1080p60-x.mp4
+ffmpeg -i renders/final/candy-paint-4k60.mp4 -vf "scale=1920:1080:flags=lanczos:out_color_matrix=bt709:out_range=tv,format=yuv420p,setparams=range=tv:colorspace=bt709:color_primaries=bt709:color_trc=bt709" -c:v libx264 -preset slow -crf 19 -maxrate 12M -bufsize 24M -profile:v high -level 4.2 -c:a copy -movflags +faststart renders/final/candy-paint-1080p60-x.mp4
 ```
 
 ## Where things live

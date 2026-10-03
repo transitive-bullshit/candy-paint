@@ -2,6 +2,7 @@
 // song; the camera eases between shots (or cuts, on the drops), always tracking the playhead.
 // Everything is a pure function of song time, like the rest of the engine.
 
+import type { EntranceStyle } from './entrance'
 import type { Layout } from './layout'
 import type { Score, VoiceId } from './score'
 
@@ -23,6 +24,13 @@ export interface Framing {
   range: number
   /** shift the look-at point across the staves (world z), to make room in the frame */
   pan: number
+  /** height of the look-at point above the page */
+  height: number
+  /**
+   * 1 tracks the playhead; 0 holds the camera still on a fixed spot (`ahead` is then an absolute
+   * x). Easing between the two starts or stops the camera's travel with a slow in or out.
+   */
+  track: number
 }
 
 export interface Shot {
@@ -53,7 +61,9 @@ const F = (
   fov: number,
   range: number,
   ahead = 0.35,
-  pan = 0
+  pan = 0,
+  height = 0.03,
+  track = 1
 ): Framing => ({
   focus,
   ahead,
@@ -62,7 +72,9 @@ const F = (
   elevation,
   fov,
   range,
-  pan
+  pan,
+  height,
+  track
 })
 
 /** the three drops: bass and sparkle arrive, everyone lands together */
@@ -142,6 +154,15 @@ export const SHOTS: Shot[] = [
   { id: 'reveal', bar: 85.0, framing: F('all', 17, 92, 34, 36, 60, -12, 2.7) }
 ]
 
+/**
+ * Held framings for each intro entrance (ahead is an absolute x while held): where the riff's two
+ * performers are on frame 0 and the path they take to the opening chord.
+ */
+const OPENINGS: Record<EntranceStyle, Framing> = {
+  arc: F('riff', 1.75, -48, 9, 26, 0.6, -0.48, -0.05, 0.2, 0),
+  skip: F('riff', 1.9, -45, 8, 27, 0.7, -0.45, -0.05, 0.1, 0)
+}
+
 export const STORY: StoryBeat[] = [
   {
     bars: [0, 4],
@@ -149,8 +170,8 @@ export const STORY: StoryBeat[] = [
     music:
       'The riff alone: the A to E arpeggio loop, with held notes under it.',
     picture:
-      'Fade up from black, close and low on the riff staff. One performer skates the held notes while a bud splits off for each dyad. The rest of the score is unpainted dark glass.',
-    frame: 6.6
+      "Frame 0 is the title over the riff's two performers skipping in across the lacquer like stones; they land the opening chord together at 0:00.70. The title holds while the camera starts following them, then is left behind. Close on the riff through the intro: one performer skates the held notes while its partner plays the other part.",
+    frame: 0
   },
   {
     bars: [4, 12],
@@ -270,9 +291,34 @@ export class Director {
   private readonly score: Score
   private readonly layout: Layout
 
-  constructor(score: Score, layout: Layout) {
+  private readonly shots: Shot[]
+
+  /**
+   * @param entrance with an intro entrance, open on the riff's performers (a held framing that
+   * suits how they enter), then follow them closely through the intro before the hook
+   */
+  constructor(score: Score, layout: Layout, entrance?: EntranceStyle) {
     this.score = score
     this.layout = layout
+    if (!entrance) {
+      this.shots = SHOTS
+      return
+    }
+    this.shots = [
+      { id: `enter-${entrance}`, bar: -0.27, framing: OPENINGS[entrance] },
+      // the camera starts to travel once they've landed, and stays close on the riff
+      {
+        id: 'follow-land',
+        bar: 0.3,
+        framing: F('riff', 1.5, -44, 11, 24, 0.5, 0.12)
+      },
+      {
+        id: 'follow-track',
+        bar: 2.6,
+        framing: F('riff', 1.9, -40, 12, 24, 0.6, 0.15)
+      },
+      ...SHOTS.filter((s) => s.id !== 'intro' && s.id !== 'intro-drift')
+    ]
   }
 
   private focusZ(f: Focus) {
@@ -292,15 +338,23 @@ export class Director {
     }
   }
 
-  /** the framing at time t: eased between shots (cuts jump) */
-  framing(t: number): Framing {
+  /** world x a framing looks at: ahead of the playhead when tracking, a fixed spot when held */
+  private lookX(f: Framing, px: number) {
+    return lerp(f.ahead, px + f.ahead, f.track)
+  }
+
+  /** the framing at time t (eased between shots, cuts jump), with the x it looks at */
+  framing(t: number): Framing & { x: number } {
+    const px = this.layout.playheadX(t)
     const bar = this.score.pos(t) / 16
-    let i = SHOTS.findIndex((s) => s.bar > bar)
-    if (i === -1) return SHOTS.at(-1)!.framing
-    if (i === 0) return SHOTS[0]!.framing
-    const next = SHOTS[i]!
-    const prev = SHOTS[i - 1]!
-    if (next.cut) return prev.framing
+    const shots = this.shots
+    const i = shots.findIndex((s) => s.bar > bar)
+    const hold = (f: Framing) => ({ ...f, x: this.lookX(f, px) })
+    if (i === -1) return hold(shots.at(-1)!.framing)
+    if (i === 0) return hold(shots[0]!.framing)
+    const next = shots[i]!
+    const prev = shots[i - 1]!
+    if (next.cut) return hold(prev.framing)
     const s = smoother(clamp((bar - prev.bar) / (next.bar - prev.bar)))
     const a = prev.framing
     const b = next.framing
@@ -312,18 +366,23 @@ export class Director {
       elevation: lerp(a.elevation, b.elevation, s),
       fov: lerp(a.fov, b.fov, s),
       range: lerp(a.range, b.range, s),
-      pan: lerp(a.pan, b.pan, s)
+      pan: lerp(a.pan, b.pan, s),
+      height: lerp(a.height, b.height, s),
+      track: lerp(a.track, b.track, s),
+      // blend where each framing looks, so going from held to tracking is a slow start
+      x: lerp(this.lookX(a, px), this.lookX(b, px), s)
     }
   }
 
   /** focus z, eased the same way as the framing so racks are smooth */
   private focusAt(t: number) {
     const bar = this.score.pos(t) / 16
-    const i = SHOTS.findIndex((s) => s.bar > bar)
+    const shots = this.shots
+    const i = shots.findIndex((s) => s.bar > bar)
     if (i <= 0)
-      return this.focusZ(SHOTS[i === -1 ? SHOTS.length - 1 : 0]!.framing.focus)
-    const next = SHOTS[i]!
-    const prev = SHOTS[i - 1]!
+      return this.focusZ(shots[i === -1 ? shots.length - 1 : 0]!.framing.focus)
+    const next = shots[i]!
+    const prev = shots[i - 1]!
     if (next.cut) return this.focusZ(prev.framing.focus)
     const s = smoother(clamp((bar - prev.bar) / (next.bar - prev.bar)))
     return lerp(
@@ -335,10 +394,9 @@ export class Director {
 
   state(t: number): CameraState {
     const fr = this.framing(t)
-    const px = this.layout.playheadX(t)
     const target: [number, number, number] = [
-      px + fr.ahead,
-      0.03,
+      fr.x,
+      fr.height,
       this.focusAt(t) + fr.pan
     ]
     const az = (fr.azimuth * Math.PI) / 180

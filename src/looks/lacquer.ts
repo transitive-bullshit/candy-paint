@@ -23,6 +23,8 @@ import { Reflector } from 'three/examples/jsm/objects/Reflector.js'
 import { CANDY, type Look, type LookContext } from '../look'
 import { buildCast } from '../cast'
 import { CreditsEffect } from '../credits'
+import { ENTRANCES, type EntranceStyle } from '../entrance'
+import { PosterEffect, type TitleAnchor } from '../poster'
 import { Director, DROPS } from '../director'
 import type { ChordMode } from '../lines'
 import type { SpriteMotion } from '../motion'
@@ -418,6 +420,16 @@ interface Performer {
 
 export async function createLacquer(ctx: LookContext): Promise<Look> {
   const { renderer, score, layout } = ctx
+  // type is drawn into canvases (credits, intro title): fonts must be ready first
+  await CreditsEffect.loadFonts()
+  // the intro: frame 0 is a title over the riff's two performers,
+  // who enter on screen and land the opening chord; the camera then follows them into the song
+  // the video opens with the skip entrance; ?intro=arc tries the other, ?intro=none disables it
+  const introParam = (ctx.query.get('intro') ?? 'skip') as
+    | EntranceStyle
+    | 'none'
+  const intro =
+    introParam !== 'none' && ENTRANCES.includes(introParam) ? introParam : null
   renderer.toneMapping = THREE.NoToneMapping
   renderer.outputColorSpace = THREE.SRGBColorSpace
 
@@ -489,7 +501,7 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
   )
 
   const mode = (ctx.query.get('chords') ?? 'bud') as ChordMode
-  const cast = buildCast(score, layout, mode)
+  const cast = buildCast(score, layout, mode, {}, intro ?? undefined)
   const notes = noteMaterial(env)
   const noteMesh = new THREE.Mesh(
     buildNotes(
@@ -563,8 +575,8 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
   })
   grain.blendMode.opacity.value = 0.035
   const fader = new FadeEffect()
-  await CreditsEffect.loadFonts()
   const credits = new CreditsEffect(score)
+  const posterFx = new PosterEffect()
   composer.addPass(new EffectPass(camera, dof))
   composer.addPass(
     new EffectPass(
@@ -573,6 +585,7 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
       new VignetteEffect({ offset: 0.32, darkness: 0.72 }),
       new ToneMappingEffect({ mode: ToneMappingMode.AGX }),
       credits,
+      posterFx,
       grain,
       fader,
       new SMAAEffect()
@@ -582,7 +595,7 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
   const mat4 = new THREE.Matrix4()
   const focusTarget = new THREE.Vector3()
 
-  const director = new Director(score, layout)
+  const director = new Director(score, layout, intro ?? undefined)
   // the drop shockwave rolls out from the bass's landing on each drop downbeat
   const shockMat = rippleMaterial()
   const shockwave = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), shockMat)
@@ -674,15 +687,67 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
       ctx.shot === 'wide' ? 2.4 : ctx.shot === 'close' ? 1.6 : 1.3
   }
 
+  // the intro title holds its spot top left while the camera starts following the riff, then the
+  // camera passes it: from LINGER on it's a point in the foreground of the scene, left behind
+  const LINGER = 3.4
+  const probe = new THREE.PerspectiveCamera()
+  const aimProbe = (t: number) => {
+    const st = director.state(t)
+    probe.fov = st.fov
+    probe.aspect = camera.aspect
+    probe.updateProjectionMatrix()
+    probe.position.set(...st.position)
+    probe.lookAt(...st.target)
+    probe.updateMatrixWorld()
+    return probe
+  }
+  let titlePoint: THREE.Vector3 | null = null
+  const titleAnchor = (t: number): TitleAnchor => {
+    const W = renderer.domElement.width
+    const H = renderer.domElement.height
+    const u = H / 1080
+    const home = { x: 110 * u, y: 70 * u, scale: 1 }
+    if (t <= LINGER) return home
+    if (!titlePoint) {
+      // the point in the scene, just in front of the camera, behind the title's center at LINGER
+      const cam = aimProbe(LINGER)
+      const ndc = new THREE.Vector3(
+        ((home.x + 400 * u) / W) * 2 - 1,
+        1 - ((home.y + 150 * u) / H) * 2,
+        0.5
+      )
+      const dir = ndc.unproject(cam).sub(cam.position).normalize()
+      titlePoint = cam.position.clone().addScaledVector(dir, 1.4)
+    }
+    const at = (tt: number) => {
+      const cam = aimProbe(tt)
+      const v = titlePoint!.clone().project(cam)
+      return { x: v.x, y: v.y, dist: cam.position.distanceTo(titlePoint!) }
+    }
+    const a = at(LINGER)
+    const b = at(t)
+    // ease the hand-off so the title's motion starts gently instead of jumping to the camera's speed
+    const e = Math.min(1, (t - LINGER) / 0.9)
+    const k = e * e * (3 - 2 * e)
+    return {
+      x: home.x + (((b.x - a.x) * W) / 2) * k,
+      y: home.y - (((b.y - a.y) * H) / 2) * k,
+      scale: 1 + (a.dist / b.dist - 1) * k
+    }
+  }
+
   const look: Look = {
     update(t) {
       placeCamera(t)
+      // with an intro, frame 0 is lit instead of fading up from black
+      if (intro && t < 1) fader.fade = 1
       credits.draw(t)
+      posterFx.draw(t, intro ? titleAnchor(t) : null)
       notes.uniforms.uTime.value = t
       lines.uniforms.uTime.value = t
       for (const p of performers) {
         const st = sampleRig(p.motion, t)
-        const r = p.motion.params.radius
+        const r = p.motion.params.radius * (st.pose.size ?? 1)
         deformMatrix(st, r, 0.09, mat4)
         p.body.matrix.copy(mat4)
         p.body.matrixWorldNeedsUpdate = true

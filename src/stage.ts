@@ -127,6 +127,8 @@ export interface LineOptions {
   height: number
   /** extend staff lines this far before bar 0 and after the end */
   margin: number
+  /** start the staff lines here instead (world x), e.g. at a system bracket */
+  start?: number
 }
 
 export const defaultLines: LineOptions = {
@@ -181,7 +183,7 @@ export function buildLines(
     )
     parts.push(g)
   }
-  const xStart = layout.x(0) - o.margin
+  const xStart = o.start ?? layout.x(0) - o.margin
   const xEnd = layout.x(score.data.bars * 16) + o.margin
   const ledgerLen = 2 * layout.opts.step * 1.5
 

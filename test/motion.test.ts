@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest'
 
 import { Layout } from '../src/layout'
 import { buildCast } from '../src/cast'
+import { ENTRANCES, type EntranceStyle } from '../src/entrance'
+import type { ChordMode } from '../src/lines'
 import { Score, VOICE_ORDER, type ScoreData, type VoiceId } from '../src/score'
 
 // A tiny synthetic score: quick hops, a long rest, and a chord, for every voice.
@@ -37,8 +39,15 @@ function fixture(): ScoreData {
 
 function checkScore(score: Score) {
   const layout = new Layout(score)
-  for (const mode of ['single', 'twins', 'bud'] as const) {
-    const { performers } = buildCast(score, layout, mode)
+  // the three chord modes, plus budding with each intro entrance for the riff's performers
+  const configs = [
+    { mode: 'single' },
+    { mode: 'twins' },
+    { mode: 'bud' },
+    ...ENTRANCES.map((entrance) => ({ mode: 'bud', entrance }))
+  ] as { mode: ChordMode; entrance?: EntranceStyle }[]
+  for (const { mode, entrance } of configs) {
+    const { performers } = buildCast(score, layout, mode, {}, entrance)
     const landed = new Set<number>()
     for (const { voice, line, motion } of performers) {
       const r = motion.params.radius

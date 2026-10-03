@@ -178,8 +178,13 @@ async function main() {
       if (!enc.stdin.write(png))
         await new Promise((r) => enc.stdin.once('drain', r))
       if (i % fps === 0) {
+        // progress on its own line (so logs can be polled): percent, speed and time remaining
         const rate = (i + 1) / ((Date.now() - started) / 1000)
-        process.stdout.write(`\rframe ${i}/${frames} (${rate.toFixed(1)} fps)`)
+        const eta = (frames - i - 1) / rate
+        const pct = ((100 * (i + 1)) / frames).toFixed(1)
+        console.log(
+          `progress ${pct}% frame ${i + 1}/${frames} ${rate.toFixed(1)} fps eta ${Math.floor(eta / 60)}m${String(Math.round(eta % 60)).padStart(2, '0')}s`
+        )
       }
     }
     enc.stdin.end()

@@ -9,6 +9,7 @@
 // A performer can also have a home (another performer): it then docks inside its home while idle
 // and buds off it to play, which is how one voice splits for chords and held notes.
 
+import { entrancePose, type EntranceStyle } from './entrance'
 import type { Layout } from './layout'
 import type { NoteEvent, Score, VoiceId } from './score'
 
@@ -100,6 +101,8 @@ export interface Pose {
   glow: number
   /** 0..1 */
   visible: number
+  /** size relative to the radius, for performers still forming (default 1) */
+  size?: number
 }
 
 export interface MotionOptions {
@@ -108,6 +111,8 @@ export interface MotionOptions {
   home?: SpriteMotion
   /** line index within the voice, so buds hovering on their own don't stack on each other */
   slot?: number
+  /** enter the video on screen from frame 0 and land the first note (see entrance.ts) */
+  entrance?: { style: EntranceStyle; partner: number }
 }
 
 /** longest arc a bud flies between its own notes before it hovers instead */
@@ -156,6 +161,7 @@ export class SpriteMotion {
   readonly events: NoteEvent[]
   readonly home?: SpriteMotion
   private readonly slot: number
+  private readonly entrance?: { style: EntranceStyle; partner: number }
   private readonly score: Score
   private readonly layout: Layout
   private readonly stops: Stop[]
@@ -173,6 +179,7 @@ export class SpriteMotion {
     this.events = events
     this.home = opts.home
     this.slot = opts.slot ?? 0
+    this.entrance = opts.entrance
     this.params = { ...MOTION[voice], ...opts.params }
     const budding = !!this.home
     const r = this.params.radius
@@ -345,7 +352,8 @@ export class SpriteMotion {
   /** a bud is inside (or emerging from / returning to) its home only around a dock */
   private docking(t: number) {
     const i = this.eventIndex(t)
-    if (i < 0 || i === this.events.length - 1) return true
+    if (i < 0) return !this.entrance
+    if (i === this.events.length - 1) return true
     const st = this.stops[i]!
     return st.kind === 'dock' && t >= this.events[i]!.t + st.depart
   }
@@ -366,6 +374,20 @@ export class SpriteMotion {
     const p = this.params
     const ev = this.events
     const i = this.eventIndex(t)
+
+    // the opening entrance, for the performers that start the song
+    if (i < 0 && this.entrance) {
+      const head = this.stops[0]!
+      const e = entrancePose(
+        this.entrance.style,
+        this.entrance.partner,
+        t,
+        ev[0]!.t,
+        { x: head.x0, y: head.y, z: head.z },
+        p.radius
+      )
+      return { ...e, visible: 1 }
+    }
 
     // before the first note: wait in the wings (or inside home), then make an entrance
     if (i < 0) {

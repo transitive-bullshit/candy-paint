@@ -10,6 +10,7 @@ import type { Look, LookFactory } from './look'
 import { createExposure } from './looks/exposure'
 import { createLacquer } from './looks/lacquer'
 import { createSleeve } from './looks/sleeve'
+import { AUDIO_URL } from './media'
 import { loadScore } from './score'
 
 const LOOKS: Record<string, LookFactory> = {
@@ -89,7 +90,7 @@ async function main() {
   }
 
   // preview
-  const audio = new Audio('/media/candy-paint-instrumental.mp3')
+  const audio = new Audio(AUDIO_URL)
   audio.preload = 'auto'
   audio.currentTime = startTime
   const ui = document.createElement('div')

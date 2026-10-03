@@ -10,6 +10,7 @@ import * as THREE from 'three'
 import { Layout } from '../layout'
 import { DEFAULT_TWEAKS, type Look, type Tweaks } from '../look'
 import { createLacquer } from '../looks/lacquer'
+import { AUDIO_URL } from '../media'
 import { loadScore } from '../score'
 import { createChrome } from './chrome'
 import { SongClock } from './clock'
@@ -22,10 +23,7 @@ const MIN_AUTO_SCALE = 0.55
 async function main() {
   const score = await loadScore('data/score.json')
   const layout = new Layout(score)
-  const clock = new SongClock(
-    'media/candy-paint-instrumental.mp3',
-    score.data.duration
-  )
+  const clock = new SongClock(AUDIO_URL, score.data.duration)
   let dirty = true
   const chrome = createChrome(score, clock, {
     invalidate: () => (dirty = true)

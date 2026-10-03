@@ -5,13 +5,13 @@
 - Node 24+, pnpm, `uv`, ffmpeg, and Google Chrome (headless renders drive the installed Chrome via Playwright).
 - `pnpm install` and `uv sync`.
 - `pnpm dev` serves through [portless](https://portless.sh); its first run asks for sudo once, to trust a local certificate and bind port 443. `PORTLESS=0 pnpm dev` skips it and serves http://127.0.0.1:5199.
-- Put the source audio at `media/candy-paint-instrumental.mp3` (not in git; it's the Molotov Cocktail Piano cover).
+- `pnpm media` downloads the source audio (the Molotov Cocktail Piano cover, not in git) from R2 into `media/` and decodes the WAV; renders do this on their own when it's missing. `pnpm media --upload --env <file>` replaces the R2 copy, with the `S3_*` credentials from the cultural-alignment project's `.env`.
 
 ## Pipeline
 
 ```bash
-# 1. decode, separate stems (optional, diagnostic) and transcribe the piano (Transkun, ~1 min on CPU)
-ffmpeg -i media/candy-paint-instrumental.mp3 -ar 44100 -ac 2 media/candy-paint-instrumental.wav
+# 1. fetch and decode the song, separate stems (optional, diagnostic) and transcribe the piano (Transkun, ~1 min on CPU)
+pnpm media
 uv tool run --python 3.11 --from transkun --with "torch<2.9" --with "torchaudio<2.9" --with "setuptools<81" \
   transkun media/candy-paint-instrumental.wav analysis/out/transkun.mid --device cpu
 
@@ -37,7 +37,7 @@ pnpm render --look lacquer --shot director --w 540 --h 960 --from 0 --to 233.59 
 pnpm render --look lacquer --shot director --w 3840 --h 2160 --from 0 --to 233.59 --fps 60 --out renders/final/candy-paint-4k60.mp4
 ffmpeg -i renders/final/candy-paint-4k60.mp4 -vf "scale=1920:1080:flags=lanczos:out_color_matrix=bt709:out_range=tv,format=yuv420p,setparams=range=tv:colorspace=bt709:color_primaries=bt709:color_trc=bt709" -c:v libx264 -preset slow -crf 19 -maxrate 12M -bufsize 24M -profile:v high -level 4.2 -c:a copy -movflags +faststart renders/final/candy-paint-1080p60-x.mp4
 
-# 7. the player as a static site in dist/ (bundles the MP3 and score: deploy it, never commit it)
+# 7. the player as a static site in dist/ (bundles the score; the MP3 streams from R2)
 pnpm build
 pnpm preview
 ```
@@ -68,10 +68,10 @@ pnpm preview
 
 ## Tests
 
-`pnpm test` runs format, lint, types and `test/motion.test.ts`, which checks that every performer lands on every onset and never jumps between frames. It uses a synthetic fixture in CI and the real score when `data/score.json` exists.
+`pnpm test` runs format, lint, types and `test/motion.test.ts`, which checks that every performer lands on every onset and never jumps between frames. It runs on a synthetic fixture and on the real score in `data/score.json`.
 
 ## Not in the repo
 
-- `media/`: the copyrighted source audio.
-- `data/`, `analysis/out/`: derived from the audio (transcription, stems); regenerate with the pipeline.
+- `media/`: the copyrighted source audio, synced from R2 by `pnpm media`.
+- `analysis/out/`: derived from the audio (transcription, stems); regenerate with the pipeline. Its result, `data/score.json`, is committed.
 - `renders/`, `dist/`: regenerable output.

@@ -17,6 +17,8 @@ import { parseArgs } from 'node:util'
 import { chromium } from 'playwright-core'
 import { createServer } from 'vite'
 
+import { ensureMedia, WAV } from './media'
+
 const { values: args } = parseArgs({
   options: {
     look: { type: 'string', default: 'lacquer' },
@@ -31,7 +33,7 @@ const { values: args } = parseArgs({
     ss: { type: 'string', default: '1' },
     out: { type: 'string', default: 'renders' },
     name: { type: 'string' },
-    audio: { type: 'string', default: 'media/candy-paint-instrumental.wav' },
+    audio: { type: 'string', default: WAV },
     /** extra page parameters for experiments, e.g. "chords=bud" */
     query: { type: 'string', default: '' },
     /** hw: hardware H.264 in the page (WebCodecs); x264: frames piped to ffmpeg's x264 */
@@ -56,6 +58,8 @@ const BT709 =
   'setparams=range=tv:colorspace=bt709:color_primaries=bt709:color_trc=bt709'
 
 async function main() {
+  // the song isn't in git: fetch it from R2 the first time
+  await ensureMedia()
   // any free port, so several renders can run side by side; no file watching, so editing
   // sources mid-render can't hot-reload the page out from under the capture
   const server = await createServer({

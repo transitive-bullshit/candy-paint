@@ -12,7 +12,7 @@ A programmatic music video for a piano cover of "Candy Paint", rendered note by 
 
 ## Mental model
 
-audio (`media/`, not in git) → transcription + analysis (`analysis/`) → `data/score.json` → engine (`src/`): voices split into lines (`lines.ts`), one performer per line that buds off its voice's main performer (`cast.ts`, `motion.ts`), camera from the storyboard (`director.ts`), all pure functions of song time → `scripts/render.ts` drives headless Chrome (`engine.html`) and pipes frames to ffmpeg with the matching audio slice. The site (`index.html`, `src/player/`) plays the same engine live against the MP3; its `Tweaks` default to the rendered video.
+audio (R2, synced to `media/` by `pnpm media`, not in git) → transcription + analysis (`analysis/`) → `data/score.json` → engine (`src/`): voices split into lines (`lines.ts`), one performer per line that buds off its voice's main performer (`cast.ts`, `motion.ts`), camera from the storyboard (`director.ts`), all pure functions of song time → `scripts/render.ts` drives headless Chrome (`engine.html`) and pipes frames to ffmpeg with the matching audio slice. The site (`index.html`, `src/player/`) plays the same engine live against the MP3; its `Tweaks` default to the rendered video.
 
 Direction A (`src/looks/lacquer.ts`) is the chosen look; `exposure` and `sleeve` are shelved concept directions.
 
@@ -21,4 +21,4 @@ Direction A (`src/looks/lacquer.ts`) is the chosen look; `exposure` and `sleeve`
 - The audio is the master: never edit or re-time it. Sync comes from the 90.000 bpm grid in the score (bar 0 at 0.702 s).
 - Keep motion deterministic: no `Math.random()` or wall-clock time at render; seed anything random.
 - The motion test is the sync contract: performers touch down on every onset. Keep it passing when changing choreography.
-- Never commit the audio, stems, transcriptions or renders with audio; they derive from copyrighted material.
+- Never commit the audio, stems, raw transcriptions (`analysis/out/`) or renders with audio; they derive from copyrighted material. `data/score.json` is the exception: it's committed so the site builds from git.

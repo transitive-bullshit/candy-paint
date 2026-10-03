@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs'
 
 import { defineConfig, type Plugin } from 'vite'
 
-// `pnpm build` makes the site: the interactive player (index.html) with the song and its score
-// beside it. Neither is in git, so they're copied in from the local pipeline outputs.
-const SITE_ASSETS = ['data/score.json', 'media/candy-paint-instrumental.mp3']
+// `pnpm build` makes the site: the interactive player (index.html) with the score beside it. The
+// song streams from R2 (src/media.ts), so it's never part of the build.
+const SITE_ASSETS = ['data/score.json']
 
 function siteAssets(): Plugin {
   return {

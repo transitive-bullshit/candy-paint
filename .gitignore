@@ -80,8 +80,5 @@ __pycache__/
 *.gif
 *.exr
 
-# transcription-derived score data (regenerate with the analysis pipeline)
-/data
-
 # typescript build info
 *.tsbuildinfo

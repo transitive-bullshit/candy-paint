@@ -28,10 +28,12 @@ pnpm render --look lacquer --from 25.4 --to 38 --fps 60 --out renders/tests/lacq
 
 # 5. review version of the full song (about 5 min): use this while iterating
 pnpm render --look lacquer --shot director --w 960 --h 540 --from 0 --to 233.59 --fps 60 --transfer jpeg --out renders/previews/candy-paint-540p60.mp4
+# a portrait size switches the camera to the vertical shot list (VERTICAL_SHOTS) for Instagram and TikTok
+pnpm render --look lacquer --shot director --w 540 --h 960 --from 0 --to 233.59 --fps 60 --transfer jpeg --out renders/previews/candy-paint-vertical-540p60.mp4
 
-# 6. the final video: a 4K60 master (about 45 min on an M3 Pro), then a supersampled 1080p60
+# 6. the final video: a 4K60 master for YouTube (about 45 min on an M3 Pro), then a supersampled, lighter 1080p60 for X and the web
 pnpm render --look lacquer --shot director --w 3840 --h 2160 --from 0 --to 233.59 --fps 60 --transfer jpeg --out renders/final/candy-paint-4k60.mp4
-ffmpeg -i renders/final/candy-paint-4k60.mp4 -vf scale=1920:1080:flags=lanczos -c:v libx264 -preset slow -crf 16 -pix_fmt yuv420p -c:a copy -movflags +faststart renders/final/candy-paint-1080p60.mp4
+ffmpeg -i renders/final/candy-paint-4k60.mp4 -vf scale=1920:1080:flags=lanczos -c:v libx264 -preset slow -crf 19 -maxrate 12M -bufsize 24M -profile:v high -level 4.2 -pix_fmt yuv420p -c:a copy -movflags +faststart renders/final/candy-paint-1080p60-x.mp4
 ```
 
 ## Where things live
@@ -52,7 +54,7 @@ ffmpeg -i renders/final/candy-paint-4k60.mp4 -vf scale=1920:1080:flags=lanczos -
 
 ## Changing a shot
 
-1. Find the beat in `STORY` and its framings in `SHOTS` (`src/director.ts`); framings are anchored to 0-indexed bars.
+1. Find the beat in `STORY` and its framings in `SHOTS`, or `VERTICAL_SHOTS` for 9:16 (`src/director.ts`); framings are anchored to 0-indexed bars.
 2. Preview it with `pnpm dev`, `?shot=director`, scrubbing to the bar.
 3. Render a still to check: `pnpm render --shot director --stills <seconds>`.
 

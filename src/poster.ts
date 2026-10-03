@@ -76,7 +76,7 @@ export class PosterEffect extends Effect {
       return
     }
     this.drawn = true
-    const u = (H / 1080) * anchor.scale
+    const u = (Math.min(W, H) / 1080) * anchor.scale
     ctx.clearRect(0, 0, W, H)
     ctx.textAlign = 'left'
     ctx.textBaseline = 'alphabetic'

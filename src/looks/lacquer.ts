@@ -595,7 +595,12 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
   const mat4 = new THREE.Matrix4()
   const focusTarget = new THREE.Vector3()
 
-  const director = new Director(score, layout, intro ?? undefined)
+  const director = new Director(
+    score,
+    layout,
+    intro ?? undefined,
+    ctx.height > ctx.width
+  )
   // the drop shockwave rolls out from the bass's landing on each drop downbeat
   const shockMat = rippleMaterial()
   const shockwave = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), shockMat)
@@ -705,8 +710,13 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
   const titleAnchor = (t: number): TitleAnchor => {
     const W = renderer.domElement.width
     const H = renderer.domElement.height
-    const u = H / 1080
-    const home = { x: 110 * u, y: 70 * u, scale: 1 }
+    // scale by the short side; a tall frame gives the title more headroom
+    const u = Math.min(W, H) / 1080
+    const home = {
+      x: (H > W ? 90 : 110) * u,
+      y: (H > W ? 170 : 70) * u,
+      scale: 1
+    }
     if (t <= LINGER) return home
     if (!titlePoint) {
       // the point in the scene, just in front of the camera, behind the title's center at LINGER

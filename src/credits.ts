@@ -92,21 +92,25 @@ export class CreditsEffect extends Effect {
       return
     }
     this.drawn = true
-    const u = H / 1080
-    const x = 150 * u
+    // scale by the short side; in a tall frame the credits sit in the lower half
+    const portrait = H > W
+    const u = Math.min(W, H) / 1080
+    const x = (portrait ? 90 : 150) * u
     ctx.clearRect(0, 0, W, H)
     ctx.textBaseline = 'alphabetic'
     ctx.textAlign = 'left'
 
     // a soft shade on the left so the type reads over any light behind it
     const shade = this.enter(t, 0).a
-    const g = ctx.createLinearGradient(0, 0, W * 0.6, 0)
+    const g = portrait
+      ? ctx.createLinearGradient(0, H, 0, H * 0.35)
+      : ctx.createLinearGradient(0, 0, W * 0.6, 0)
     g.addColorStop(0, `rgba(5, 3, 6, ${0.55 * shade})`)
     g.addColorStop(1, 'rgba(5, 3, 6, 0)')
     ctx.fillStyle = g
     ctx.fillRect(0, 0, W, H)
 
-    const titleY = H * 0.43
+    const titleY = portrait ? H * 0.6 : H * 0.43
     // title: condensed and heavy, like the treatment's display type
     {
       const { a, dy } = this.enter(t, 0.1)

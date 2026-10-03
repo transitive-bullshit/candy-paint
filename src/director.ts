@@ -163,6 +163,115 @@ const OPENINGS: Record<EntranceStyle, Framing> = {
   skip: F('riff', 1.9, -45, 8, 27, 0.7, -0.45, -0.05, 0.1, 0)
 }
 
+/**
+ * The same storyboard recomposed for 9:16. In a tall frame the camera mostly sits behind the
+ * playhead looking down the score, so time recedes up the screen and performers hop toward the
+ * top; full-ensemble moments go high so all four staves fit across the narrow width. Same beats
+ * and bars as SHOTS, same cuts on the drops.
+ */
+export const VERTICAL_SHOTS: Shot[] = [
+  { id: 'intro', bar: -0.3, framing: F('riff', 2.4, -82, 13, 40, 1.0, 0.5) },
+  {
+    id: 'intro-drift',
+    bar: 3.4,
+    framing: F('riff', 2.8, -78, 15, 40, 1.1, 0.5)
+  },
+  { id: 'hook1', bar: 5, framing: F('mid', 4.2, -74, 24, 42, 1.4, 0.6) },
+  { id: 'hook1-hold', bar: 8, framing: F('mid', 4.6, -72, 26, 42, 1.5, 0.6) },
+  {
+    id: 'hook1-reveal',
+    bar: 11,
+    framing: F('low', 6.0, -70, 34, 44, 2.0, 0.7)
+  },
+  {
+    id: 'hook1-inhale',
+    bar: 11.85,
+    framing: F('low', 6.8, -70, 38, 44, 2.2, 0.7)
+  },
+  {
+    id: 'drop1',
+    bar: 12,
+    cut: true,
+    framing: F('low', 4.6, -84, 18, 46, 1.8, 0.8)
+  },
+  {
+    id: 'drop1-cruise',
+    bar: 16,
+    framing: F('all', 7.6, -72, 44, 44, 2.6, 0.8)
+  },
+  { id: 'drop1-out', bar: 19.6, framing: F('all', 8.0, -76, 46, 44, 2.8, 0.8) },
+  { id: 'verse1', bar: 20.4, framing: F('lead', 2.6, -84, 12, 38, 0.9, 0.5) },
+  { id: 'verse1-rack', bar: 25, framing: F('mid', 3.2, -80, 16, 40, 1.0, 0.5) },
+  { id: 'verse1-late', bar: 31, framing: F('mid', 3.6, -76, 18, 40, 1.1, 0.5) },
+  { id: 'prehook1', bar: 35.8, framing: F('mid', 5.0, -72, 30, 42, 1.6, 0.6) },
+  { id: 'hook2', bar: 37, framing: F('all', 7.0, -60, 55, 44, 3.0, 0.6) },
+  {
+    id: 'hook2-inhale',
+    bar: 43.85,
+    framing: F('all', 7.8, -60, 58, 44, 3.2, 0.6)
+  },
+  {
+    id: 'drop2',
+    bar: 44,
+    cut: true,
+    framing: F('low', 3.0, -88, 8, 48, 1.4, 0.9)
+  },
+  {
+    id: 'drop2-cruise',
+    bar: 48,
+    framing: F('low', 3.6, -84, 12, 46, 1.5, 0.8)
+  },
+  { id: 'drop2-out', bar: 51.6, framing: F('mid', 4.0, -80, 16, 42, 1.4, 0.6) },
+  { id: 'verse2', bar: 52.6, framing: F('mid', 4.0, -78, 20, 40, 1.2, 0.5) },
+  {
+    id: 'verse2-motif',
+    bar: 56.2,
+    framing: F('high', 3.6, -80, 26, 40, 1.1, 0.5)
+  },
+  {
+    id: 'verse2-motif-hold',
+    bar: 59.2,
+    framing: F('high', 3.8, -78, 26, 40, 1.2, 0.5)
+  },
+  { id: 'prehook2', bar: 61, framing: F('mid', 4.6, -74, 24, 42, 1.4, 0.6) },
+  { id: 'hook3', bar: 64.5, framing: F('all', 7.2, -72, 42, 44, 2.6, 0.7) },
+  {
+    id: 'hook3-push',
+    bar: 71.4,
+    framing: F('mid', 4.6, -76, 26, 42, 1.6, 0.6)
+  },
+  {
+    id: 'hook3-inhale',
+    bar: 71.85,
+    framing: F('mid', 5.2, -76, 30, 42, 1.8, 0.6)
+  },
+  {
+    id: 'drop3',
+    bar: 72,
+    cut: true,
+    framing: F('all', 8.2, -68, 50, 46, 3.0, 0.8)
+  },
+  {
+    id: 'drop3-orbit',
+    bar: 79.6,
+    framing: F('all', 8.6, -86, 56, 46, 3.2, 0.8)
+  },
+  { id: 'outro', bar: 80.6, framing: F('riff', 3.0, -82, 14, 40, 1.0, 0.4) },
+  {
+    id: 'outro-hold',
+    bar: 81.6,
+    framing: F('riff', 3.4, -78, 18, 40, 1.1, 0.3)
+  },
+  // looking back down the song from past its end: the near part of the frame is empty lacquer,
+  // which leaves the lower half for the credits
+  { id: 'reveal', bar: 85.0, framing: F('all', 15, 92, 42, 40, 60, -14) }
+]
+
+const VERTICAL_OPENINGS: Record<EntranceStyle, Framing> = {
+  arc: F('riff', 2.0, -84, 12, 40, 0.8, -0.4, 0, 0.14, 0),
+  skip: F('riff', 2.9, -80, 14, 42, 1.0, -0.4, 0, 0.12, 0)
+}
+
 export const STORY: StoryBeat[] = [
   {
     bars: [0, 4],
@@ -297,27 +406,46 @@ export class Director {
    * @param entrance with an intro entrance, open on the riff's performers (a held framing that
    * suits how they enter), then follow them closely through the intro before the hook
    */
-  constructor(score: Score, layout: Layout, entrance?: EntranceStyle) {
+  /**
+   * @param entrance with an intro entrance, open on the riff's performers (a held framing that
+   * suits how they enter), then follow them closely through the intro before the hook
+   * @param vertical compose for a 9:16 frame (VERTICAL_SHOTS) instead of 16:9
+   */
+  constructor(
+    score: Score,
+    layout: Layout,
+    entrance?: EntranceStyle,
+    vertical = false
+  ) {
     this.score = score
     this.layout = layout
+    const shots = vertical ? VERTICAL_SHOTS : SHOTS
     if (!entrance) {
-      this.shots = SHOTS
+      this.shots = shots
       return
     }
     this.shots = [
-      { id: `enter-${entrance}`, bar: -0.27, framing: OPENINGS[entrance] },
+      {
+        id: `enter-${entrance}`,
+        bar: -0.27,
+        framing: (vertical ? VERTICAL_OPENINGS : OPENINGS)[entrance]
+      },
       // the camera starts to travel once they've landed, and stays close on the riff
       {
         id: 'follow-land',
         bar: 0.3,
-        framing: F('riff', 1.5, -44, 11, 24, 0.5, 0.12)
+        framing: vertical
+          ? F('riff', 2.3, -82, 13, 40, 0.9, 0.4)
+          : F('riff', 1.5, -44, 11, 24, 0.5, 0.12)
       },
       {
         id: 'follow-track',
         bar: 2.6,
-        framing: F('riff', 1.9, -40, 12, 24, 0.6, 0.15)
+        framing: vertical
+          ? F('riff', 2.6, -80, 14, 40, 1.0, 0.45)
+          : F('riff', 1.9, -40, 12, 24, 0.6, 0.15)
       },
-      ...SHOTS.filter((s) => s.id !== 'intro' && s.id !== 'intro-drift')
+      ...shots.filter((s) => s.id !== 'intro' && s.id !== 'intro-drift')
     ]
   }
 

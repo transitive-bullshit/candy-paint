@@ -58,6 +58,7 @@ pnpm preview
 | Looks | `src/looks/{lacquer,exposure,sleeve}.ts` |  |
 | Headless renderer | `scripts/render.ts`, `engine.html` | `renders/` |
 | Interactive player (DialKit controls) | `index.html`, `src/player/` | `dist/` |
+| Site metadata (icons, social card, robots, sitemap, llms.txt) | `index.html` head, `public/` | `dist/` |
 
 ## Changing a shot
 

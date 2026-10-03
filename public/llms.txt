@@ -1,0 +1,13 @@
+# Candy Paint
+
+> A music video for a piano cover of Post Malone's "Candy Paint", rendered live in your browser, note by note from the score.
+
+Every voice in the arrangement gets a small performer that travels the score and lands on each note exactly as it sounds. There is no generative video or imagery: a purpose-built WebGL engine renders every frame deterministically from a transcription of the song. The site plays that same engine live, in sync with the audio, so nothing on the page is pre-rendered video.
+
+Credits: "Candy Paint" by Post Malone. Instrumental cover by Molotov Cocktail Piano. Music video by Travis Fischer, created with Claude Opus 5.5. Built with three.js, Transkun and FFmpeg.
+
+## Links
+
+- [The video](https://candy-paint.vercel.app/): the interactive player; press ? for keyboard shortcuts
+- [Source code](https://github.com/transitive-bullshit/candy-paint): the analysis pipeline, the engine and the renderer
+- [Travis Fischer on X](https://x.com/transitive_bs): the author

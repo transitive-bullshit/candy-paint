@@ -4,6 +4,7 @@
 import 'dialkit/vanilla/styles.css'
 import './player.css'
 
+import { inject } from '@vercel/analytics'
 import * as THREE from 'three'
 
 import { Layout } from '../layout'
@@ -165,6 +166,9 @@ async function main() {
     chrome.ready()
   })
 }
+
+// Vercel Web Analytics: page views only, and only in production (dev logs to the console)
+inject({ mode: import.meta.env.DEV ? 'development' : 'production' })
 
 main().catch((err: unknown) => {
   console.error(err)

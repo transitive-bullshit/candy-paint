@@ -4,6 +4,7 @@
 
 import * as THREE from 'three'
 
+import { createSegmentEncoder } from './encode'
 import { Layout } from './layout'
 import type { Look, LookFactory } from './look'
 import { createExposure } from './looks/exposure'
@@ -20,6 +21,8 @@ const LOOKS: Record<string, LookFactory> = {
 declare global {
   interface Window {
     renderFrame?: (t: number) => Promise<void>
+    /** offline renders: encode segments of frames in the page (WebCodecs) */
+    segmentEncoder?: ReturnType<typeof createSegmentEncoder>
     lookReady?: boolean
     lookError?: string
   }
@@ -77,6 +80,10 @@ async function main() {
       look.render()
       renderer.getContext().finish()
     }
+    window.segmentEncoder = createSegmentEncoder(renderer.domElement, (t) => {
+      look.update(t)
+      look.render()
+    })
     window.lookReady = true
     return
   }

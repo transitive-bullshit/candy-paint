@@ -56,8 +56,13 @@ export class PosterEffect extends Effect {
   }
 
   override setSize(width: number, height: number) {
+    if (this.canvas.width === width && this.canvas.height === height) return
     this.canvas.width = width
     this.canvas.height = height
+    // the GPU copy keeps the storage size of its first upload, so a resized canvas needs a fresh
+    // texture; otherwise old pixels outside the new size stay on screen
+    this.texture.dispose()
+    this.texture.needsUpdate = true
     this.drawn = false
   }
 

@@ -741,6 +741,13 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
   // the intro title holds its spot top left while the camera starts following the riff, then the
   // camera passes it: from LINGER on it's a point in the foreground of the scene, left behind
   const LINGER = 3.4
+  // in a tall frame the title spans nearly the whole width, so it sits deeper in the scene and
+  // eases off for longer: it drifts out to the left instead of being swept away
+  const tall = ctx.height > ctx.width
+  const TITLE_DEPTH = tall ? 3.0 : 1.4
+  const HANDOFF = tall ? 1.6 : 0.9
+  // and mostly keeps its height, so the camera's rise doesn't drag it down on the way out
+  const RISE = tall ? 0.3 : 1
   const probe = new THREE.PerspectiveCamera()
   const aimProbe = (t: number) => {
     const st = director.state(t)
@@ -773,7 +780,7 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
         0.5
       )
       const dir = ndc.unproject(cam).sub(cam.position).normalize()
-      titlePoint = cam.position.clone().addScaledVector(dir, 1.4)
+      titlePoint = cam.position.clone().addScaledVector(dir, TITLE_DEPTH)
     }
     const at = (tt: number) => {
       const cam = aimProbe(tt)
@@ -783,11 +790,11 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
     const a = at(LINGER)
     const b = at(t)
     // ease the hand-off so the title's motion starts gently instead of jumping to the camera's speed
-    const e = Math.min(1, (t - LINGER) / 0.9)
+    const e = Math.min(1, (t - LINGER) / HANDOFF)
     const k = e * e * (3 - 2 * e)
     return {
       x: home.x + (((b.x - a.x) * W) / 2) * k,
-      y: home.y - (((b.y - a.y) * H) / 2) * k,
+      y: home.y - (((b.y - a.y) * H) / 2) * k * RISE,
       scale: 1 + (a.dist / b.dist - 1) * k
     }
   }

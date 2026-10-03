@@ -2,61 +2,355 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <title>Candy Paint</title>
+    <meta
+      name="description"
+      content="A music video for a piano cover of Post Malone's Candy Paint, rendered live in your browser, note by note from the score."
+    />
+    <meta name="theme-color" content="#050307" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3CradialGradient id='g' cx='.38' cy='.36' r='.66'%3E%3Cstop offset='0' stop-color='%23fff4ee'/%3E%3Cstop offset='.42' stop-color='%23ff6d83'/%3E%3Cstop offset='1' stop-color='%23d81b3f'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='16' cy='16' r='12' fill='url(%23g)'/%3E%3C/svg%3E"
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=DM+Mono:wght@500&display=block"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=DM+Mono:wght@400;500&display=swap"
     />
-    <style>
-      html,
-      body {
-        margin: 0;
-        height: 100%;
-        background: #050307;
-        overflow: hidden;
-      }
-      body {
-        display: grid;
-        place-items: center;
-      }
-      body.render {
-        display: block;
-      }
-      canvas {
-        display: block;
-      }
-      .ui {
-        position: fixed;
-        left: 16px;
-        right: 16px;
-        bottom: 12px;
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        font:
-          12px/1.2 ui-monospace,
-          SFMono-Regular,
-          Menlo,
-          monospace;
-        color: #d8cfe0;
-      }
-      .ui input {
-        flex: 1;
-      }
-      .ui button {
-        font: inherit;
-        background: #1c1420;
-        color: inherit;
-        border: 1px solid #3a2e40;
-        padding: 4px 10px;
-        border-radius: 4px;
-      }
-    </style>
   </head>
-  <body>
-    <script type="module" src="/src/main.ts"></script>
+  <body class="loading fresh">
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <symbol id="i-play" viewBox="0 0 24 24">
+        <path
+          d="M8 5.14v13.72a1 1 0 0 0 1.52.85l10.92-6.86a1 1 0 0 0 0-1.7L9.52 4.29A1 1 0 0 0 8 5.14z"
+        />
+      </symbol>
+      <symbol id="i-pause" viewBox="0 0 24 24">
+        <rect x="6" y="4.5" width="4.2" height="15" rx="1.3" />
+        <rect x="13.8" y="4.5" width="4.2" height="15" rx="1.3" />
+      </symbol>
+      <symbol id="i-replay" viewBox="0 0 24 24">
+        <path
+          d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4.5v4h4"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </symbol>
+      <symbol id="i-back" viewBox="0 0 24 24">
+        <path
+          d="M11.5 6.5 6 12l5.5 5.5M18 6.5 12.5 12l5.5 5.5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </symbol>
+      <symbol id="i-forward" viewBox="0 0 24 24">
+        <path
+          d="M12.5 6.5 18 12l-5.5 5.5M6 6.5 11.5 12 6 17.5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </symbol>
+      <symbol id="i-volume" viewBox="0 0 24 24">
+        <path
+          d="M3.5 9.6v4.8a1 1 0 0 0 1 1h2.9l4.4 3.6a.9.9 0 0 0 1.5-.7V5.7a.9.9 0 0 0-1.5-.7L7.4 8.6H4.5a1 1 0 0 0-1 1z"
+        />
+        <path
+          d="M16.2 8.8a4.6 4.6 0 0 1 0 6.4M18.8 6.3a8.2 8.2 0 0 1 0 11.4"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+        />
+      </symbol>
+      <symbol id="i-muted" viewBox="0 0 24 24">
+        <path
+          d="M3.5 9.6v4.8a1 1 0 0 0 1 1h2.9l4.4 3.6a.9.9 0 0 0 1.5-.7V5.7a.9.9 0 0 0-1.5-.7L7.4 8.6H4.5a1 1 0 0 0-1 1z"
+        />
+        <path
+          d="m16.5 9.5 5 5m0-5-5 5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+        />
+      </symbol>
+      <symbol id="i-expand" viewBox="0 0 24 24">
+        <path
+          d="M4.5 9V5.5a1 1 0 0 1 1-1H9M15 4.5h3.5a1 1 0 0 1 1 1V9M19.5 15v3.5a1 1 0 0 1-1 1H15M9 19.5H5.5a1 1 0 0 1-1-1V15"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+        />
+      </symbol>
+      <symbol id="i-shrink" viewBox="0 0 24 24">
+        <path
+          d="M9 4.5V8a1 1 0 0 1-1 1H4.5M19.5 9H16a1 1 0 0 1-1-1V4.5M15 19.5V16a1 1 0 0 1 1-1h3.5M4.5 15H8a1 1 0 0 1 1 1v3.5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+        />
+      </symbol>
+      <symbol id="i-keys" viewBox="0 0 24 24">
+        <rect
+          x="2.75"
+          y="6"
+          width="18.5"
+          height="12"
+          rx="2.6"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.7"
+        />
+        <path
+          d="M6.6 10h.8M10 10h.8M13.4 10h.8M16.8 10h.6M7.6 14h8.8"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+        />
+      </symbol>
+      <symbol id="i-close" viewBox="0 0 24 24">
+        <path
+          d="m6.5 6.5 11 11m0-11-11 11"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+        />
+      </symbol>
+      <symbol id="i-github" viewBox="0 0 24 24">
+        <path
+          d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0 0 12 .3"
+        />
+      </symbol>
+      <symbol id="i-x" viewBox="0 0 24 24">
+        <path
+          d="M18.9 1.15h3.68l-8.04 9.19L24 22.85h-7.4l-5.8-7.59-6.64 7.59H.47l8.6-9.83L0 1.15h7.59l5.25 6.93ZM17.61 20.64h2.04L6.49 3.24H4.3Z"
+        />
+      </symbol>
+    </svg>
+
+    <main class="stage" aria-label="Candy Paint, rendered live"></main>
+
+    <div class="loader" role="status">
+      <div class="dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <p class="loader-message">Tuning up</p>
+    </div>
+
+    <div class="center">
+      <div class="start">
+        <button
+          class="bigplay"
+          type="button"
+          data-action="play"
+          aria-label="Play"
+        >
+          <svg class="i-play"><use href="#i-play" /></svg>
+          <svg class="i-replay"><use href="#i-replay" /></svg>
+        </button>
+        <p class="hint">Press <kbd>Space</kbd> to play</p>
+      </div>
+      <div class="flash" aria-hidden="true">
+        <svg data-for="play"><use href="#i-play" /></svg>
+        <svg data-for="pause"><use href="#i-pause" /></svg>
+        <svg data-for="back"><use href="#i-back" /></svg>
+        <svg data-for="forward"><use href="#i-forward" /></svg>
+      </div>
+    </div>
+
+    <footer class="chrome transport">
+      <div
+        class="seek"
+        role="slider"
+        tabindex="0"
+        aria-label="Seek"
+        aria-valuemin="0"
+        aria-valuemax="233.6"
+        aria-valuenow="0"
+      >
+        <div class="seek-rail">
+          <i class="seek-base"></i>
+          <i class="seek-hover"></i>
+          <i class="seek-fill"></i>
+        </div>
+        <i class="seek-knob"></i>
+        <div class="seek-tip">
+          <span class="time">0:00</span><span class="label">Intro</span>
+        </div>
+      </div>
+
+      <div class="bar">
+        <div class="group">
+          <button
+            class="icon play"
+            type="button"
+            data-action="play"
+            aria-label="Play or pause (Space)"
+          >
+            <svg class="i-play"><use href="#i-play" /></svg>
+            <svg class="i-pause"><use href="#i-pause" /></svg>
+          </button>
+          <div class="volume">
+            <button
+              class="icon"
+              type="button"
+              data-action="mute"
+              aria-label="Mute (M)"
+            >
+              <svg class="i-volume"><use href="#i-volume" /></svg>
+              <svg class="i-muted"><use href="#i-muted" /></svg>
+            </button>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value="1"
+              aria-label="Volume"
+            />
+          </div>
+          <div class="clock">
+            <span class="now">0:00.00</span><span class="sep">/</span
+            ><span class="total">3:53</span>
+          </div>
+          <div class="where">
+            <span class="section">Intro</span
+            ><span class="bar-number">Bar 1</span>
+          </div>
+        </div>
+        <div class="group">
+          <button
+            class="icon"
+            type="button"
+            data-action="keys"
+            aria-label="Keyboard shortcuts (?)"
+          >
+            <svg><use href="#i-keys" /></svg>
+          </button>
+          <button
+            class="icon fs"
+            type="button"
+            data-action="fullscreen"
+            aria-label="Full screen (F)"
+          >
+            <svg class="i-expand"><use href="#i-expand" /></svg>
+            <svg class="i-shrink"><use href="#i-shrink" /></svg>
+          </button>
+          <span class="divider" aria-hidden="true"></span>
+          <a
+            class="icon"
+            href="https://github.com/transitive-bullshit/candy-paint"
+            target="_blank"
+            rel="noopener"
+            aria-label="Source code on GitHub"
+          >
+            <svg><use href="#i-github" /></svg>
+          </a>
+          <a
+            class="icon"
+            href="https://x.com/transitive_bs"
+            target="_blank"
+            rel="noopener"
+            aria-label="Travis Fischer on X"
+          >
+            <svg class="small"><use href="#i-x" /></svg>
+          </a>
+        </div>
+      </div>
+    </footer>
+
+    <div
+      class="sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="keys-title"
+      aria-hidden="true"
+    >
+      <div class="card">
+        <header>
+          <h2 id="keys-title">Shortcuts</h2>
+          <button
+            class="icon"
+            type="button"
+            data-action="close"
+            aria-label="Close"
+          >
+            <svg><use href="#i-close" /></svg>
+          </button>
+        </header>
+        <dl class="keys">
+          <div>
+            <dt>Play or pause</dt>
+            <dd><kbd>Space</kbd><kbd>K</kbd></dd>
+          </div>
+          <div>
+            <dt>Back, forward 5 s</dt>
+            <dd><kbd>&larr;</kbd><kbd>&rarr;</kbd></dd>
+          </div>
+          <div>
+            <dt>Back, forward 10 s</dt>
+            <dd><kbd>J</kbd><kbd>L</kbd></dd>
+          </div>
+          <div>
+            <dt>Back, forward one bar</dt>
+            <dd><kbd>&#8679;</kbd><kbd>&larr;</kbd><kbd>&rarr;</kbd></dd>
+          </div>
+          <div>
+            <dt>Step one frame</dt>
+            <dd><kbd>,</kbd><kbd>.</kbd></dd>
+          </div>
+          <div>
+            <dt>Previous, next section</dt>
+            <dd><kbd>[</kbd><kbd>]</kbd></dd>
+          </div>
+          <div>
+            <dt>Jump to 0&ndash;90%</dt>
+            <dd><kbd>0</kbd><span>&ndash;</span><kbd>9</kbd></dd>
+          </div>
+          <div>
+            <dt>Start, end</dt>
+            <dd><kbd>Home</kbd><kbd>End</kbd></dd>
+          </div>
+          <div>
+            <dt>Volume</dt>
+            <dd><kbd>&uarr;</kbd><kbd>&darr;</kbd></dd>
+          </div>
+          <div>
+            <dt>Mute</dt>
+            <dd><kbd>M</kbd></dd>
+          </div>
+          <div>
+            <dt>Full screen</dt>
+            <dd><kbd>F</kbd></dd>
+          </div>
+          <div>
+            <dt>This sheet</dt>
+            <dd><kbd>?</kbd></dd>
+          </div>
+        </dl>
+        <p class="note">
+          Every frame is drawn live by the video's own engine, in sync with the
+          music.
+        </p>
+      </div>
+    </div>
+
+    <script type="module" src="/src/player/main.ts"></script>
   </body>
 </html>

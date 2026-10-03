@@ -520,7 +520,8 @@ export class Director {
     )
   }
 
-  state(t: number): CameraState {
+  /** @param impact scales the drops' punch-in and shake (1 = as storyboarded) */
+  state(t: number, impact = 1): CameraState {
     const fr = this.framing(t)
     const target: [number, number, number] = [
       fr.x,
@@ -543,8 +544,8 @@ export class Director {
       if (age < 0 || age > 2.5) continue
       shock = { age, strength: 1 }
       const k = Math.exp(-age / 0.28)
-      fov -= 2.4 * k
-      const amp = 0.035 * k
+      fov -= 2.4 * k * impact
+      const amp = 0.035 * k * impact
       position = [
         position[0] + amp * Math.sin(age * 41),
         position[1] + amp * Math.sin(age * 37 + 1.3),

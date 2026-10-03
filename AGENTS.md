@@ -12,7 +12,7 @@ A programmatic music video for a piano cover of "Candy Paint", rendered note by 
 
 ## Mental model
 
-audio (`media/`, not in git) → transcription + analysis (`analysis/`) → `data/score.json` → engine (`src/`): voices split into lines (`lines.ts`), one performer per line that buds off its voice's main performer (`cast.ts`, `motion.ts`), camera from the storyboard (`director.ts`), all pure functions of song time → `scripts/render.ts` drives headless Chrome and pipes frames to ffmpeg with the matching audio slice.
+audio (`media/`, not in git) → transcription + analysis (`analysis/`) → `data/score.json` → engine (`src/`): voices split into lines (`lines.ts`), one performer per line that buds off its voice's main performer (`cast.ts`, `motion.ts`), camera from the storyboard (`director.ts`), all pure functions of song time → `scripts/render.ts` drives headless Chrome (`engine.html`) and pipes frames to ffmpeg with the matching audio slice. The site (`index.html`, `src/player/`) plays the same engine live against the MP3; its `Tweaks` default to the rendered video.
 
 Direction A (`src/looks/lacquer.ts`) is the chosen look; `exposure` and `sleeve` are shelved concept directions.
 

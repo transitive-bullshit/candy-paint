@@ -19,7 +19,8 @@ uv run python analysis/analyze_mix.py
 uv run python analysis/analyze_notes.py
 uv run python analysis/build_score.py
 
-# 3. preview with audio and scrubbing: ?look=lacquer&shot=director, &chords=bud|twins|single (space plays, arrows step)
+# 3. the interactive player at http://127.0.0.1:5199 (? lists its shortcuts); the bare engine, with any look,
+#    is at /engine.html?look=lacquer&shot=director, &chords=bud|twins|single (space plays, arrows step)
 pnpm dev
 
 # 4. render stills or a clip with the matching audio slice
@@ -34,6 +35,10 @@ pnpm render --look lacquer --shot director --w 540 --h 960 --from 0 --to 233.59 
 # 6. the final video: a 4K60 master for YouTube (about 45 min on an M3 Pro), then a supersampled, lighter 1080p60 for X and the web
 pnpm render --look lacquer --shot director --w 3840 --h 2160 --from 0 --to 233.59 --fps 60 --transfer jpeg --out renders/final/candy-paint-4k60.mp4
 ffmpeg -i renders/final/candy-paint-4k60.mp4 -vf "scale=1920:1080:flags=lanczos:out_color_matrix=bt709:out_range=tv,format=yuv420p,setparams=range=tv:colorspace=bt709:color_primaries=bt709:color_trc=bt709" -c:v libx264 -preset slow -crf 19 -maxrate 12M -bufsize 24M -profile:v high -level 4.2 -c:a copy -movflags +faststart renders/final/candy-paint-1080p60-x.mp4
+
+# 7. the player as a static site in dist/ (bundles the MP3 and score: deploy it, never commit it)
+pnpm build
+pnpm preview
 ```
 
 ## Where things live
@@ -50,7 +55,8 @@ ffmpeg -i renders/final/candy-paint-4k60.mp4 -vf "scale=1920:1080:flags=lanczos:
 | Performer choreography | `src/motion.ts`, `src/rig.ts` |  |
 | Storyboard and camera direction | `src/director.ts` |  |
 | Looks | `src/looks/{lacquer,exposure,sleeve}.ts` |  |
-| Headless renderer | `scripts/render.ts` | `renders/` |
+| Headless renderer | `scripts/render.ts`, `engine.html` | `renders/` |
+| Interactive player (DialKit controls) | `index.html`, `src/player/` | `dist/` |
 
 ## Changing a shot
 
@@ -66,4 +72,4 @@ ffmpeg -i renders/final/candy-paint-4k60.mp4 -vf "scale=1920:1080:flags=lanczos:
 
 - `media/`: the copyrighted source audio.
 - `data/`, `analysis/out/`: derived from the audio (transcription, stems); regenerate with the pipeline.
-- `renders/`: regenerable output.
+- `renders/`, `dist/`: regenerable output.

@@ -73,7 +73,7 @@ async function main() {
       if (msg.type() === 'error' || msg.type() === 'warning')
         console.log(`[page ${msg.type()}]`, msg.text())
     })
-    const url = `http://127.0.0.1:${port}/?mode=render&look=${args.look}&shot=${args.shot}&w=${RW}&h=${RH}${args.query ? `&${args.query}` : ''}`
+    const url = `http://127.0.0.1:${port}/engine.html?mode=render&look=${args.look}&shot=${args.shot}&w=${RW}&h=${RH}${args.query ? `&${args.query}` : ''}`
     await page.goto(url)
     await page.waitForFunction(
       () => window.lookReady || window.lookError,

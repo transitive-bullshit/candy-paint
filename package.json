@@ -9,6 +9,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview",
     "render": "tsx scripts/render.ts",
     "test": "run-s test:*",
     "test:format": "oxfmt --check",
@@ -22,6 +24,7 @@
     "fix:lint": "oxlint --fix"
   },
   "dependencies": {
+    "dialkit": "^2.0.2",
     "postprocessing": "^6.39.5",
     "three": "^0.186.1"
   },

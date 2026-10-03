@@ -20,7 +20,7 @@ import {
 import * as THREE from 'three'
 import { Reflector } from 'three/examples/jsm/objects/Reflector.js'
 
-import { CANDY, type Look, type LookContext } from '../look'
+import { DEFAULT_TWEAKS, type Look, type LookContext } from '../look'
 import { buildCast } from '../cast'
 import { CreditsEffect } from '../credits'
 import { ENTRANCES, type EntranceStyle } from '../entrance'
@@ -195,10 +195,10 @@ class GroundReflection {
   }
 }
 
-function noteMaterial(env: THREE.Texture) {
+function noteMaterial(env: THREE.Texture, palette: Record<VoiceId, string>) {
   const uniforms = {
     uTime: { value: 0 },
-    uColors: { value: VOICE_ORDER.map((v) => new THREE.Color(CANDY[v])) },
+    uColors: { value: VOICE_ORDER.map((v) => new THREE.Color(palette[v])) },
     uEmber: { value: 1 }
   }
   const mat = new THREE.MeshPhysicalMaterial({
@@ -415,11 +415,15 @@ interface Performer {
   halo: THREE.Sprite
   light: THREE.PointLight
   trail: Trail
+  trailMat: THREE.ShaderMaterial
   color: THREE.Color
 }
 
 export async function createLacquer(ctx: LookContext): Promise<Look> {
   const { renderer, score, layout } = ctx
+  // live adjustments from the web player; renders always get the defaults
+  const tweaks = () => ctx.tweaks ?? DEFAULT_TWEAKS
+  const palette = tweaks().palette
   // type is drawn into canvases (credits, intro title): fonts must be ready first
   await CreditsEffect.loadFonts()
   // the intro: frame 0 is a title over the riff's two performers,
@@ -502,7 +506,7 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
 
   const mode = (ctx.query.get('chords') ?? 'bud') as ChordMode
   const cast = buildCast(score, layout, mode, {}, intro ?? undefined)
-  const notes = noteMaterial(env)
+  const notes = noteMaterial(env, palette)
   const noteMesh = new THREE.Mesh(
     buildNotes(
       score,
@@ -520,7 +524,7 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
   const haloTex = radialTexture(128, 2.4)
   const performers: Performer[] = cast.performers.map(
     ({ voice, line, motion }) => {
-      const color = new THREE.Color(CANDY[voice])
+      const color = new THREE.Color(palette[voice])
       const bodyMat = pearlMaterial(color)
       const body = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 5), bodyMat)
       body.matrixAutoUpdate = false
@@ -534,11 +538,39 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
         })
       )
       const light = new THREE.PointLight(color, 0, 1.6, 2)
-      const trail = new Trail(trailMaterial(color, 1.6))
+      const trailMat = trailMaterial(color, 1.6)
+      const trail = new Trail(trailMat)
       scene.add(body, halo, light, trail.mesh)
-      return { voice, line, motion, body, bodyMat, halo, light, trail, color }
+      return {
+        voice,
+        line,
+        motion,
+        body,
+        bodyMat,
+        halo,
+        light,
+        trail,
+        trailMat,
+        color
+      }
     }
   )
+  // repaint every voice when the player's palette changes
+  let paletteKey = JSON.stringify(palette)
+  const repaint = (next: Record<VoiceId, string>) => {
+    const key = JSON.stringify(next)
+    if (key === paletteKey) return
+    paletteKey = key
+    VOICE_ORDER.forEach((v, i) => notes.uniforms.uColors.value[i]!.set(next[v]))
+    for (const p of performers) {
+      p.color.set(next[p.voice])
+      p.halo.material.color.copy(p.color)
+      p.light.color.copy(p.color)
+      ;(p.trailMat.uniforms.uColor!.value as THREE.Color)
+        .copy(p.color)
+        .multiplyScalar(1.6)
+    }
+  }
 
   const ripplePool = Array.from({ length: 24 }, () => {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), rippleMaterial())
@@ -574,6 +606,7 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
     blendFunction: BlendFunction.SCREEN
   })
   grain.blendMode.opacity.value = 0.035
+  const vignette = new VignetteEffect({ offset: 0.32, darkness: 0.72 })
   const fader = new FadeEffect()
   const credits = new CreditsEffect(score)
   const posterFx = new PosterEffect()
@@ -582,7 +615,7 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
     new EffectPass(
       camera,
       bloom,
-      new VignetteEffect({ offset: 0.32, darkness: 0.72 }),
+      vignette,
       new ToneMappingEffect({ mode: ToneMappingMode.AGX }),
       credits,
       posterFx,
@@ -620,8 +653,13 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
   })
 
   const placeCamera = (t: number) => {
-    if (ctx.shot === 'director') {
-      const st = director.state(t)
+    const tw = tweaks()
+    const shot = ctx.tweaks?.shot ?? ctx.shot
+    dof.bokehScale = 3.2 * tw.focus
+    grain.blendMode.opacity.value = tw.grain
+    vignette.darkness = tw.vignette
+    if (shot === 'director') {
+      const st = director.state(t, tw.impact)
       camera.fov = st.fov
       camera.position.set(...st.position)
       focusTarget.set(...st.target)
@@ -639,28 +677,36 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
       warm.color
         .copy(warmBase)
         .multiplyScalar(1 - steep * steep * (3 - 2 * steep))
-      ;(scene.fog as THREE.FogExp2).density = st.fog
-      notes.uniforms.uEmber.value = st.ember
+      ;(scene.fog as THREE.FogExp2).density = st.fog * tw.fog
+      notes.uniforms.uEmber.value = st.ember * tw.ember
       fader.fade = st.fade
-      const flash = st.shock ? 1.4 * Math.exp(-st.shock.age / 0.22) : 0
-      bloom.intensity = st.bloom + flash
+      const flash = st.shock
+        ? 1.4 * tw.impact * Math.exp(-st.shock.age / 0.22)
+        : 0
+      bloom.intensity = (st.bloom + flash) * tw.bloom
       const drop = dropOrigins.find((d) => t >= d.t && t < d.t + 2.5)
-      shockwave.visible = !!drop
+      shockwave.visible = !!drop && tw.impact > 0
       if (drop) {
         const age = t - drop.t
         shockwave.position.set(drop.x, 0.002, drop.z)
         shockwave.scale.set(9, 9, 1)
         shockMat.uniforms.uAge!.value = age * 0.3
-        shockMat.uniforms.uStrength!.value = 1.6
+        shockMat.uniforms.uStrength!.value = 1.6 * tw.impact
         ;(shockMat.uniforms.uColor!.value as THREE.Color)
-          .set(CANDY.bass)
+          .set(tw.palette.bass)
           .lerp(new THREE.Color('#ffffff'), 0.35)
       }
       return
     }
+    // the fixed framings keep the look's base fog, glow and exposure
+    ;(scene.fog as THREE.FogExp2).density = 0.07 * tw.fog
+    notes.uniforms.uEmber.value = tw.ember
+    fader.fade = 1
+    bloom.intensity = 1.15 * tw.bloom
+    shockwave.visible = false
     const px = layout.playheadX(t)
     const zMid = (layout.staffCenterZ('riff') + layout.staffCenterZ('lead')) / 2
-    switch (ctx.shot) {
+    switch (shot) {
       case 'wide':
         camera.fov = 32
         camera.position.set(px - 3.2, 2.6, 2.9)
@@ -689,7 +735,7 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
     camera.lookAt(focusTarget)
     dof.target = focusTarget
     dof.cocMaterial.focusRange =
-      ctx.shot === 'wide' ? 2.4 : ctx.shot === 'close' ? 1.6 : 1.3
+      shot === 'wide' ? 2.4 : shot === 'close' ? 1.6 : 1.3
   }
 
   // the intro title holds its spot top left while the camera starts following the riff, then the
@@ -748,32 +794,37 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
 
   const look: Look = {
     update(t) {
+      const tw = tweaks()
+      repaint(tw.palette)
       placeCamera(t)
+      const directed = (ctx.tweaks?.shot ?? ctx.shot) === 'director'
       // with an intro, frame 0 is lit instead of fading up from black
       if (intro && t < 1) fader.fade = 1
       credits.draw(t)
-      posterFx.draw(t, intro ? titleAnchor(t) : null)
+      posterFx.draw(t, intro && directed ? titleAnchor(t) : null)
       notes.uniforms.uTime.value = t
       lines.uniforms.uTime.value = t
       for (const p of performers) {
         const st = sampleRig(p.motion, t)
-        const r = p.motion.params.radius * (st.pose.size ?? 1)
+        const r = p.motion.params.radius * (st.pose.size ?? 1) * tw.size
         deformMatrix(st, r, 0.09, mat4)
         p.body.matrix.copy(mat4)
         p.body.matrixWorldNeedsUpdate = true
         const vis = st.pose.visible
+        const glow = st.pose.glow * tw.glow
         p.body.visible = vis > 0.01
         p.bodyMat.uniforms.uOpacity!.value = vis
-        p.bodyMat.uniforms.uGlow!.value = st.pose.glow
+        p.bodyMat.uniforms.uGlow!.value = glow
         p.halo.position.copy(st.pos)
-        const hs = r * (4.5 + 3 * st.pose.glow)
+        const hs = r * (4.5 + 3 * glow)
         p.halo.scale.set(hs, hs, 1)
-        p.halo.material.opacity = 0.35 * vis * Math.min(1.4, st.pose.glow)
+        p.halo.material.opacity = 0.35 * vis * Math.min(1.4, glow)
         p.light.position.set(st.pos.x, st.pos.y + r * 1.5, st.pos.z)
         p.light.intensity =
-          0.25 * vis * (0.4 + st.pose.glow) * (p.voice === 'bass' ? 1.6 : 1)
-        p.trail.update(p.motion, t, 0.42, r * 0.55, camera)
-        p.trail.mesh.visible = vis > 0.01
+          0.25 * vis * (0.4 + glow) * (p.voice === 'bass' ? 1.6 : 1)
+        if (tw.trail > 0)
+          p.trail.update(p.motion, t, 0.42 * tw.trail, r * 0.55, camera)
+        p.trail.mesh.visible = vis > 0.01 && tw.trail > 0
       }
       const impacts = recentImpacts(score, layout, t, 0.9)
       const take = impacts.slice(-ripplePool.length)
@@ -788,11 +839,27 @@ export async function createLacquer(ctx: LookContext): Promise<Look> {
         m.scale.set(size, size, 1)
         mat.uniforms.uAge!.value = t - imp.t
         mat.uniforms.uStrength!.value = 0.5 + imp.vel
-        ;(mat.uniforms.uColor!.value as THREE.Color).set(CANDY[imp.voice])
+        ;(mat.uniforms.uColor!.value as THREE.Color).set(tw.palette[imp.voice])
       })
     },
     render() {
       composer.render()
+    },
+    dispose() {
+      scene.traverse((o) => {
+        if (!(o instanceof THREE.Mesh)) return
+        o.geometry.dispose()
+        const mats: THREE.Material[] = Array.isArray(o.material)
+          ? o.material
+          : [o.material]
+        for (const m of mats) m.dispose()
+      })
+      for (const p of performers) p.halo.material.dispose()
+      reflection.reflector.dispose()
+      composer.dispose()
+      env.dispose()
+      flakes.dispose()
+      haloTex.dispose()
     },
     setSize(w, h) {
       camera.aspect = w / h

@@ -3,8 +3,10 @@
   "configurations": [
     {
       "name": "preview",
-      "runtimeExecutable": "pnpm",
+      "runtimeExecutable": "env",
       "runtimeArgs": [
+        "PORTLESS=0",
+        "pnpm",
         "dev"
       ],
       "port": 5199

@@ -8,7 +8,7 @@
   "repository": "https://github.com/transitive-bullshit/candy-paint",
   "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
+    "dev": "portless run vite",
     "build": "vite build",
     "preview": "vite preview",
     "render": "tsx scripts/render.ts",
@@ -38,6 +38,7 @@
     "oxlint": "^1.86.0",
     "oxlint-tsgolint": "^7.0.2003",
     "playwright-core": "^1.63.0",
+    "portless": "^0.15.6",
     "simple-git-hooks": "^2.14.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",

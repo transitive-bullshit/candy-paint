@@ -24,6 +24,8 @@ function siteAssets(): Plugin {
 export default defineConfig({
   // relative URLs, so the site works from any folder of a web server
   base: './',
+  // `pnpm dev` runs through portless (https://candy-paint.localhost), which picks the port;
+  // this fixed one is for PORTLESS=0 pnpm dev
   server: { host: '127.0.0.1', port: 5199, strictPort: true },
   preview: { host: '127.0.0.1', port: 5199 },
   // three.js is most of the bundle; it gzips to about 270 kB

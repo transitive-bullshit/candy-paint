@@ -4,6 +4,7 @@
 
 - Node 24+, pnpm, `uv`, ffmpeg, and Google Chrome (headless renders drive the installed Chrome via Playwright).
 - `pnpm install` and `uv sync`.
+- `pnpm dev` serves through [portless](https://portless.sh); its first run asks for sudo once, to trust a local certificate and bind port 443. `PORTLESS=0 pnpm dev` skips it and serves http://127.0.0.1:5199.
 - Put the source audio at `media/candy-paint-instrumental.mp3` (not in git; it's the Molotov Cocktail Piano cover).
 
 ## Pipeline
@@ -19,8 +20,8 @@ uv run python analysis/analyze_mix.py
 uv run python analysis/analyze_notes.py
 uv run python analysis/build_score.py
 
-# 3. the interactive player at http://127.0.0.1:5199 (? lists its shortcuts); the bare engine, with any look,
-#    is at /engine.html?look=lacquer&shot=director, &chords=bud|twins|single (space plays, arrows step)
+# 3. the interactive player at https://candy-paint.localhost via portless (? lists its shortcuts); the bare
+#    engine, with any look, is at /engine.html?look=lacquer&shot=director, &chords=bud|twins|single
 pnpm dev
 
 # 4. render stills or a clip with the matching audio slice

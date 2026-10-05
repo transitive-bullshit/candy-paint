@@ -262,9 +262,11 @@ function noteMaterial(env: THREE.Texture, palette: Record<VoiceId, string>) {
         vec3 candy = uColors[int(vVoice + 0.5)];
         float age = uTime - vOnset;
         float hit = step(0.0, age);
-        // candy floods from the head along the pill, pushed by the performer riding it
-        float fill = hit * (vFillStart + clamp(age / vRide, 0.0, 1.0) * (1.0 - vFillStart));
-        float filled = hit * (1.0 - smoothstep(fill - 0.04, fill + 0.02, vLocal));
+        // candy floods from the head along the pill, pushed by the performer riding it; until the
+        // landing its front waits at the head cap, so the approach glow never lights a held note's length
+        float fill = vFillStart + clamp(age / vRide, 0.0, 1.0) * (1.0 - vFillStart);
+        float front = 1.0 - smoothstep(fill - 0.04, fill + 0.02, vLocal);
+        float filled = hit * front;
         vec3 primer = vec3(0.012, 0.010, 0.014) + candy * 0.012;
         diffuseColor.rgb = mix(primer, candy * 0.75, filled);`
       )
@@ -276,7 +278,7 @@ function noteMaterial(env: THREE.Texture, palette: Record<VoiceId, string>) {
         float approach = (1.0 - hit) * smoothstep(-0.28, 0.0, age);
         // after it sounds, the paint keeps a low ember so the score accumulates color
         float ember = hit * mix(0.12, 0.035, smoothstep(0.0, 6.0, age - vDur)) * uEmber;
-        totalEmissiveRadiance += candy * (flash * 6.0 * filled + sounding * filled * 0.55 + ember * filled + approach * 0.3);`
+        totalEmissiveRadiance += candy * (flash * 6.0 * filled + sounding * filled * 0.55 + ember * filled + approach * front * 0.3);`
       )
   }
   return { mat, uniforms }

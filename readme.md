@@ -1,10 +1,10 @@
 # Candy Paint
 
-[![Candy Paint: the title over two pearls of light skipping across a candy-lacquered score](docs/poster.jpg)](https://www.youtube.com/watch?v=e-R5cXF3bzE)
+[![Candy Paint: the title over two pearls of light skipping across a candy-lacquered score](docs/poster.jpg)](https://www.youtube.com/watch?v=X806TXsSypQ)
 
 > A music video for a piano cover of Post Malone's "Candy Paint", rendered note by note from the score.
 
-**[Watch on YouTube](https://www.youtube.com/watch?v=e-R5cXF3bzE)** · **[Play it live in your browser](https://candy-paint.vercel.app)** · **[Read the write-up](https://www.transitivebullsh.it/projects/candy-paint-music-video)**
+**[Watch on YouTube](https://www.youtube.com/watch?v=X806TXsSypQ)** · **[Play it live in your browser](https://candy-paint.vercel.app)** · **[Read the write-up](https://www.transitivebullsh.it/projects/candy-paint-music-video)**
 
 Every voice in the arrangement gets a small performer that travels the score and lands on each note exactly as it sounds. No generative video or imagery: a purpose-built WebGL engine renders every frame deterministically from a transcription of the song.
 
